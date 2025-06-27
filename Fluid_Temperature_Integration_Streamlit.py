@@ -159,7 +159,7 @@ if st.button("Run Simulation"):
         # Handle potential zero k_fluid if not manually inputted or for specific fluid choices
         if k_fluid == 0:
             st.error("Fluid thermal conductivity (k_fluid) cannot be zero. Please check your fluid data.")
-            return
+            st.stop()
 
         Pr = (mu_t * cp_fluid) / k_fluid
         Nu = 0.023 * Re**0.8 * Pr**n # Dittus-Boelter correlation for turbulent flow
