@@ -10,7 +10,7 @@ from scipy.optimize import fsolve # Importar fsolve aqui
 
 # --- Constantes Físicas ---
 
-SIGMA = 5.67e-8  # Constante de Stefan-Boltzmann [W/(m^2 * K^4)]
+SIGMA = 5.67*10^-8  # Constante de Stefan-Boltzmann [W/(m^2 * K^4)]
 
 
 
