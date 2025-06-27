@@ -232,6 +232,24 @@ if st.button("Run Simulation"):
         else:
             loss_term = (current_T_K - T_ambient_K) / R_total_system_for_loss # Total Heat loss (W)
 
+        # DEBUGGING: Print valores-chave para inspecionar
+    if i % 100 == 0: # Para não imprimir em todas as iterações e sobrecarregar o app/log
+        st.write(f"--- Step {i} (Time: {time[i]:.1f} s, T_fluid: {current_T_C:.1f}°C) ---")
+        st.write(f"  h_rad_pipe: {h_rad_pipe:.2e} W/m2K")
+        st.write(f"  R_equiv_ext_pipe: {R_equiv_ext_pipe:.2e} K/W")
+        st.write(f"  Condutância da Tubulação (conductance_pipe): {conductance_pipe:.2e} W/K")
+        
+        st.write(f"  h_rad_pump: {h_rad_pump:.2e} W/m2K")
+        st.write(f"  R_equiv_ext_pump: {R_equiv_ext_pump:.2e} K/W")
+        st.write(f"  Condutância da Bomba (conductance_pump): {conductance_pump:.2e} W/K")
+        
+        st.write(f"  Condutância Total de Perda (total_conductance_loss): {total_conductance_loss:.2e} W/K")
+        st.write(f"  Resistência Total do Sistema para Perda (R_total_system_for_loss): {R_total_system_for_loss:.2e} K/W")
+        st.write(f"  Taxa de Perda de Calor Total (loss_term): {loss_term:.2f} W")
+        st.write(f"  Potência de Aquecimento Líquida (dWp_dt - loss_term): {dWp_dt - loss_term:.2f} W")
+        st.write(f"  dT/dt (taxa de aquecimento): {dT_dt:.4f} °C/s")
+        st.write("---")
+
         # 5. Calculate dT/dt and update fluid temperature
         if m * cp_fluid == 0:
             dT_dt = 0
