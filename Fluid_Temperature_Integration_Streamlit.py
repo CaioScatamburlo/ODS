@@ -46,10 +46,10 @@ else:
         "KRD MAX 2205 (82.5 - 402 cP)",
         "KRD MAX 685 (68.2 - 115.6 cP)",
         "KRD MAX 55 (2.4 - 4.64 cP)",
-        "Tellus S2 V32",   # NOVO
-        "Tellus S2 V100",  # NOVO
-        "Tellus S2 M32",   # NOVO
-        "Tellus S2 M100"   # NOVO
+        "Tellus S2 V32 (16,4 - 77.7 cP)",
+        "Tellus S2 V100 (44.4 - 277.8 cP)",
+        "Tellus S2 M32 (14 - 86.1 cP)",
+        "Tellus S2 M100 (35.3 -  315 cP)" 
     ])
 
     # Fluid properties (common for library fluids)
