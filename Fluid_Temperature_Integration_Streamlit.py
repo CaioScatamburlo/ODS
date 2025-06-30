@@ -98,7 +98,7 @@ d = st.number_input("Inner pipe diameter (m):", min_value=0.01, value=0.25716)
 D = st.number_input("Outer pipe diameter (m):", min_value=0.01, value=0.3238)
 L = st.number_input("Pipe length (m):", min_value=1.0, value=40.0)
 
-# Insulation option for pipes
+# Insulation option
 use_insulation = st.checkbox("Use pipe insulation?", value=False)
 
 insulation_thickness = 0.0
