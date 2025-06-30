@@ -46,10 +46,10 @@ else:
         "KRD MAX 2205 (82.5 - 402 cP)",
         "KRD MAX 685 (68.2 - 115.6 cP)",
         "KRD MAX 55 (2.4 - 4.64 cP)",
-        "Tellus S2 V32 (16,4 - 77.7 cP)",
-        "Tellus S2 V100 (44.4 - 277.8 cP)",
-        "Tellus S2 M32 (14 - 86.1 cP)",
-        "Tellus S2 M100 (35.3 -  315 cP)" 
+        "Tellus S2 V32 (16.4 - 77.7 cP)",   # ATUALIZADO
+        "Tellus S2 V100 (44.4 - 277.8 cP)",  # ATUALIZADO
+        "Tellus S2 M32 (14 - 86.1 cP)",   # ATUALIZADO
+        "Tellus S2 M100 (35.3 - 315 cP)"   # ATUALIZADO
     ])
 
     # Fluid properties (common for library fluids)
@@ -68,13 +68,13 @@ else:
         viscosity_model = lambda Tf: -9e-08 * Tf**3 + 1e-05 * Tf**2 - 0.0007 * Tf + 0.0165
     
     # NOVAS ADIÇÕES PARA OS ÓLEOS TELLUS S2
-    elif fluid_choice == "Tellus S2 V32":
+    elif fluid_choice == "Tellus S2 V32 (16.4 - 77.7 cP)":
         viscosity_model = lambda Tf: 0.1661 * np.exp(-0.0456 * Tf)
-    elif fluid_choice == "Tellus S2 V100":
+    elif fluid_choice == "Tellus S2 V100 (44.4 - 277.8 cP)":
         viscosity_model = lambda Tf: 0.8123 * np.exp(-0.0458 * Tf)
-    elif fluid_choice == "Tellus S2 M32":
+    elif fluid_choice == "Tellus S2 M32 (14 - 86.1 cP)":
         viscosity_model = lambda Tf: 0.2241 * np.exp(-0.0385 * Tf)
-    elif fluid_choice == "Tellus S2 M100":
+    elif fluid_choice == "Tellus S2 M100 (35.3 - 315 cP)":
         viscosity_model = lambda Tf: 1.0963 * np.exp(-0.0388 * Tf)
 
 
@@ -90,18 +90,18 @@ pump_heat_factor = st.number_input(
 
 st.header("Heating Phase Pump Config")
 pump_power_kw = st.number_input("Nominal power per heating pump (kW):", min_value=0.1, value=69.0)
-pump_hydraulic_power = st.number_input("Hydraulic Power per heating pump (kW):", min_value=0.1, value=40.0)
+# REMOVIDO: pump_hydraulic_power = st.number_input("Hydraulic Power per heating pump (kW):", min_value=0.1, value=40.0)
 pump_flow_m3h = st.number_input("Flow rate per heating pump (m³/h):", min_value=0.1, value=550.0)
-pump_eff = st.number_input("Pump efficiency (%) for heating:", min_value=1.0, max_value=100.0, value=58.0)
+# REMOVIDO: pump_eff = st.number_input("Pump efficiency (%) for heating:", min_value=1.0, max_value=100.0, value=58.0)
 num_pumps = st.number_input("Number of heating pumps operating in parallel:", min_value=1, step=1, value=1)
 pump_surface_area_m2 = st.number_input("Pump Surface Area (m²) for heat loss per pump:", min_value=0.0, value=1.5)
 
 
 st.header("Calibration Phase Pump Config")
 calib_pump_power_kw = st.number_input("Nominal power per calibration pump (kW):", min_value=0.1, value=69.0)
-calib_pump_hydraulic_power = st.number_input("Hydraulic Power per calibration pump (kW):", min_value=0.1, value=40.0)
+# REMOVIDO: calib_pump_hydraulic_power = st.number_input("Hydraulic Power per calibration pump (kW):", min_value=0.1, value=40.0)
 calib_pump_flow_m3h = st.number_input("Flow rate per calibration pump (m³/h):", min_value=0.1, value=550.0)
-calib_pump_eff = st.number_input("Pump efficiency (%) for calibration:", min_value=1.0, max_value=100.0, value=58.0)
+# REMOVIDO: calib_pump_eff = st.number_input("Pump efficiency (%) for calibration:", min_value=1.0, max_value=100.0, value=58.0)
 calib_num_pumps = st.number_input("Number of calibration pumps operating in parallel:", min_value=1, step=1, value=1)
 calib_pump_surface_area_m2 = st.number_input("Calibration Pump Surface Area (m²) for heat loss per pump:", min_value=0.0, value=1.5)
 
@@ -143,7 +143,7 @@ if num_tanks > 0:
         tank_surface_area_m2_per_unit = (np.pi * tank_diameter_m * tank_height_m) + (np.pi * (tank_diameter_m / 2)**2)
         st.write(f"Calculated exposed surface area per tank: {tank_surface_area_m2_per_unit:.2f} m² (Side + Top)")
         
-        # NOVO: Calcular e exibir o volume do tanque
+        # Calcular e exibir o volume do tanque
         tank_volume_calculated_m3 = (np.pi * (tank_diameter_m / 2)**2) * tank_height_m
         st.write(f"Calculated volume per tank: {tank_volume_calculated_m3:.2f} m³")
 
@@ -161,28 +161,9 @@ t_max_h = st.number_input("Total simulation time (h):", min_value=0.1, value=10.
 
 # === Run Simulation ===
 if st.button("Run Simulation"):
-    # --- Power Validation ---
-    error_margin = 0.02 # 2% error margin
-    
-    # Validation for Heating Phase
-    if pump_eff > 0:
-        expected_nominal_heating = (pump_hydraulic_power / (pump_eff / 100))
-        if pump_power_kw > 0 and not (abs(expected_nominal_heating - pump_power_kw) / pump_power_kw <= error_margin):
-            st.warning(f"**Warning (Heating Phase):** 'Nominal Power' ({pump_power_kw:.2f} kW) does not match (Hydraulic Power / Efficiency) = ({expected_nominal_heating:.2f} kW) within a 2% margin. "
-                       "Please ensure 'Nominal Power' represents the **Pump Axle Power**. "
-                       "The calculation will proceed using the provided Nominal Power.")
-    else:
-        st.warning("**Warning (Heating Phase):** Pump efficiency cannot be zero. Calculation may be inaccurate.")
-    
-    # Validation for Calibration Phase
-    if calib_pump_eff > 0:
-        expected_nominal_calib = (calib_pump_hydraulic_power / (calib_pump_eff / 100))
-        if calib_pump_power_kw > 0 and not (abs(expected_nominal_calib - calib_pump_power_kw) / calib_pump_power_kw <= error_margin):
-            st.warning(f"**Warning (Calibration Phase):** 'Nominal Power' ({calib_pump_power_kw:.2f} kW) does not match (Hydraulic Power / Efficiency) = ({expected_nominal_calib:.2f} kW) within a 2% margin. "
-                       "Please ensure 'Nominal Power' represents the **Pump Axle Power**. "
-                       "The calculation will proceed using the provided Nominal Power.")
-    else:
-        st.warning("**Warning (Calibration Phase):** Calibration pump efficiency cannot be zero. Calculation may be inaccurate.")
+    # --- Power Validation (Removed as requested) ---
+    # The Nominal Power is now directly taken as the pump axle power converted to heat.
+    # No validation against hydraulic power and efficiency needed.
     
     # --- Start Simulation Calculations ---
     dWp_dt = pump_power_kw * 1000 * num_pumps  # W (Total heat generated by pump(s) from shaft power)
@@ -347,22 +328,22 @@ if st.button("Run Simulation"):
     
     # NOVAS ADIÇÕES PARA O CÁLCULO INVERSO PARA TEMPERATURA (T) DADO VISCOSIDADE (mu_target_PaS)
     # T = -1/B * log(mu_target_PaS / A)
-    elif fluid_choice == "Tellus S2 V32":
+    elif fluid_choice == "Tellus S2 V32 (16.4 - 77.7 cP)":
         A_v32, B_v32 = 0.1661, 0.0456
         T_90 = -1 / B_v32 * np.log(min_mu / A_v32)
         T_110 = -1 / B_v32 * np.log(max_mu / A_v32)
         T_target_visc = -1 / B_v32 * np.log(target_mu / A_v32)
-    elif fluid_choice == "Tellus S2 V100":
+    elif fluid_choice == "Tellus S2 V100 (44.4 - 277.8 cP)":
         A_v100, B_v100 = 0.8123, 0.0458
         T_90 = -1 / B_v100 * np.log(min_mu / A_v100)
         T_110 = -1 / B_v100 * np.log(max_mu / A_v100)
         T_target_visc = -1 / B_v100 * np.log(target_mu / A_v100)
-    elif fluid_choice == "Tellus S2 M32":
+    elif fluid_choice == "Tellus S2 M32 (14 - 86.1 cP)":
         A_m32, B_m32 = 0.2241, 0.0385
         T_90 = -1 / B_m32 * np.log(min_mu / A_m32)
         T_110 = -1 / B_m32 * np.log(max_mu / A_m32)
         T_target_visc = -1 / B_m32 * np.log(target_mu / A_m32)
-    elif fluid_choice == "Tellus S2 M100":
+    elif fluid_choice == "Tellus S2 M100 (35.3 - 315 cP)":
         A_m100, B_m100 = 1.0963, 0.0388
         T_90 = -1 / B_m100 * np.log(min_mu / A_m100)
         T_110 = -1 / B_m100 * np.log(max_mu / A_m100)
