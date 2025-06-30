@@ -76,18 +76,18 @@ pump_heat_factor = st.number_input(
 
 st.header("Heating Phase Pump Config")
 pump_power_kw = st.number_input("Nominal power per heating pump (kW):", min_value=0.1, value=69.0)
-pump_hydraulic_power = st.number_input("Hydraulic Power per heating pump (kW):", min_value=0.1, value=40.0)
+# Removido: pump_hydraulic_power = st.number_input("Hydraulic Power per heating pump (kW):", min_value=0.1, value=40.0)
 pump_flow_m3h = st.number_input("Flow rate per heating pump (m³/h):", min_value=0.1, value=550.0)
-pump_eff = st.number_input("Pump efficiency (%) for heating:", min_value=1.0, max_value=100.0, value=58.0)
+# Removido: pump_eff = st.number_input("Pump efficiency (%) for heating:", min_value=1.0, max_value=100.0, value=58.0)
 num_pumps = st.number_input("Number of heating pumps operating in parallel:", min_value=1, step=1, value=1)
 pump_surface_area_m2 = st.number_input("Pump Surface Area (m²) for heat loss per pump:", min_value=0.0, value=1.5)
 
 
 st.header("Calibration Phase Pump Config")
 calib_pump_power_kw = st.number_input("Nominal power per calibration pump (kW):", min_value=0.1, value=69.0)
-calib_pump_hydraulic_power = st.number_input("Hydraulic Power per calibration pump (kW):", min_value=0.1, value=40.0)
+# Removido: calib_pump_hydraulic_power = st.number_input("Hydraulic Power per calibration pump (kW):", min_value=0.1, value=40.0)
 calib_pump_flow_m3h = st.number_input("Flow rate per calibration pump (m³/h):", min_value=0.1, value=550.0)
-calib_pump_eff = st.number_input("Pump efficiency (%) for calibration:", min_value=1.0, max_value=100.0, value=58.0)
+# Removido: calib_pump_eff = st.number_input("Pump efficiency (%) for calibration:", min_value=1.0, max_value=100.0, value=58.0)
 calib_num_pumps = st.number_input("Number of calibration pumps operating in parallel:", min_value=1, step=1, value=1)
 calib_pump_surface_area_m2 = st.number_input("Calibration Pump Surface Area (m²) for heat loss per pump:", min_value=0.0, value=1.5)
 
@@ -114,10 +114,9 @@ if use_insulation:
 # === Tank Data ===
 st.header("Tank Data")
 num_tanks = st.number_input("Number of Tanks:", min_value=0, value=1, step=1)
-# Initialize tank variables with defaults even if num_tanks is 0
 tank_surface_area_m2_per_unit = 0.0
-tank_wall_thickness_m = 0.001 # Default, very thin if no tanks or not set
-tank_k_material = 1.0 # Default, high conductivity, minimal impact if no tanks
+tank_wall_thickness_m = 0.001 
+tank_k_material = 1.0 
 
 if num_tanks > 0:
     tank_type = st.selectbox("Tank Geometry/Type:", ["Cylindrical (vertical)", "Manual Exposed Surface Area"])
@@ -125,7 +124,6 @@ if num_tanks > 0:
     if tank_type == "Cylindrical (vertical)":
         tank_diameter_m = st.number_input("Tank Diameter (m):", min_value=0.1, value=2.0)
         tank_height_m = st.number_input("Tank Height (m):", min_value=0.1, value=2.0)
-        # Assuming tank is full, heat loss from side wall and top surface
         tank_surface_area_m2_per_unit = (np.pi * tank_diameter_m * tank_height_m) + (np.pi * (tank_diameter_m / 2)**2) # Side + Top
         st.write(f"Calculated exposed surface area per tank: {tank_surface_area_m2_per_unit:.2f} m² (Side + Top)")
     else: # Manual Surface Area
@@ -134,8 +132,7 @@ if num_tanks > 0:
     tank_wall_thickness_m = st.number_input("Tank Wall Thickness (m):", min_value=0.001, value=0.005)
     tank_k_material = st.number_input("Tank Wall Thermal Conductivity (W/m·K):", min_value=0.1, value=50.0)
     
-    # NÃO UTILIZAMOS ISOLAMENTO NOS TANQUES, REMOVIDO CHECKBOX E INPUTS
-    st.markdown("*(Nota: Isolamento para tanques não é considerado neste modelo.)*")
+    st.markdown("*(Note: Tank insulation is not considered in this model.)*")
 
 
 t_max_h = st.number_input("Total simulation time (h):", min_value=0.1, value=10.0)
@@ -143,28 +140,9 @@ t_max_h = st.number_input("Total simulation time (h):", min_value=0.1, value=10.
 
 # === Run Simulation ===
 if st.button("Run Simulation"):
-    # --- Power Validation ---
-    error_margin = 0.02 # 2% error margin
-    
-    # Validation for Heating Phase
-    if pump_eff > 0:
-        expected_nominal_heating = (pump_hydraulic_power / (pump_eff / 100))
-        if pump_power_kw > 0 and not (abs(expected_nominal_heating - pump_power_kw) / pump_power_kw <= error_margin):
-            st.warning(f"**Warning (Heating Phase):** 'Nominal Power' ({pump_power_kw:.2f} kW) does not match (Hydraulic Power / Efficiency) = ({expected_nominal_heating:.2f} kW) within a 2% margin. "
-                       "Please ensure 'Nominal Power' represents the **Pump Axle Power**. "
-                       "The calculation will proceed using the provided Nominal Power.")
-    else:
-        st.warning("**Warning (Heating Phase):** Pump efficiency cannot be zero. Calculation may be inaccurate.")
-    
-    # Validation for Calibration Phase
-    if calib_pump_eff > 0:
-        expected_nominal_calib = (calib_pump_hydraulic_power / (calib_pump_eff / 100))
-        if calib_pump_power_kw > 0 and not (abs(expected_nominal_calib - calib_pump_power_kw) / calib_pump_power_kw <= error_margin):
-            st.warning(f"**Warning (Calibration Phase):** 'Nominal Power' ({calib_pump_power_kw:.2f} kW) does not match (Hydraulic Power / Efficiency) = ({expected_nominal_calib:.2f} kW) within a 2% margin. "
-                       "Please ensure 'Nominal Power' represents the **Pump Axle Power**. "
-                       "The calculation will proceed using the provided Nominal Power.")
-    else:
-        st.warning("**Warning (Calibration Phase):** Calibration pump efficiency cannot be zero. Calculation may be inaccurate.")
+    # --- Power Validation (Removed as requested) ---
+    # The Nominal Power is now directly taken as the pump axle power converted to heat.
+    # No validation against hydraulic power and efficiency needed.
     
     # --- Start Simulation Calculations ---
     dWp_dt = pump_power_kw * 1000 * num_pumps  # W (Total heat generated by pump(s) from shaft power)
@@ -188,6 +166,7 @@ if st.button("Run Simulation"):
 
     # Calculate constant thermal resistances for the pipe once outside the loop
     R_cond_pipe = np.log(D / d) / (2 * np.pi * k_pipe * L)
+    # R_cond_insul only depends on pipe insulation, not tank insulation
     R_cond_insul = np.log(D_insul / D) / (2 * np.pi * k_insul * L) if use_insulation else 0
     outer_diameter_for_loss = D_insul if use_insulation else D # Diameter for external heat transfer area of pipe
 
