@@ -76,14 +76,18 @@ pump_heat_factor = st.number_input(
 
 st.header("Heating Phase Pump Config")
 pump_power_kw = st.number_input("Nominal power per heating pump (kW):", min_value=0.1, value=69.0)
+pump_hydraulic_power = st.number_input("Hydraulic Power per heating pump (kW):", min_value=0.1, value=40.0)
 pump_flow_m3h = st.number_input("Flow rate per heating pump (m³/h):", min_value=0.1, value=550.0)
+pump_eff = st.number_input("Pump efficiency (%) for heating:", min_value=1.0, max_value=100.0, value=58.0)
 num_pumps = st.number_input("Number of heating pumps operating in parallel:", min_value=1, step=1, value=1)
 pump_surface_area_m2 = st.number_input("Pump Surface Area (m²) for heat loss per pump:", min_value=0.0, value=1.5)
 
 
 st.header("Calibration Phase Pump Config")
 calib_pump_power_kw = st.number_input("Nominal power per calibration pump (kW):", min_value=0.1, value=69.0)
+calib_pump_hydraulic_power = st.number_input("Hydraulic Power per calibration pump (kW):", min_value=0.1, value=40.0)
 calib_pump_flow_m3h = st.number_input("Flow rate per calibration pump (m³/h):", min_value=0.1, value=550.0)
+calib_pump_eff = st.number_input("Pump efficiency (%) for calibration:", min_value=1.0, max_value=100.0, value=58.0)
 calib_num_pumps = st.number_input("Number of calibration pumps operating in parallel:", min_value=1, step=1, value=1)
 calib_pump_surface_area_m2 = st.number_input("Calibration Pump Surface Area (m²) for heat loss per pump:", min_value=0.0, value=1.5)
 
@@ -94,26 +98,73 @@ d = st.number_input("Inner pipe diameter (m):", min_value=0.01, value=0.25716)
 D = st.number_input("Outer pipe diameter (m):", min_value=0.01, value=0.3238)
 L = st.number_input("Pipe length (m):", min_value=1.0, value=40.0)
 
-# Insulation option
+# Insulation option for pipes
 use_insulation = st.checkbox("Use pipe insulation?", value=False)
 
-# Initialize insulation variables even if not used to avoid NameError
 insulation_thickness = 0.0
 D_insul = D
-k_insul = 1.0 # Arbitrary non-zero default, won't be used if no insulation
+k_insul = 1.0 
 
 if use_insulation:
-    insulation_thickness = st.number_input("Insulation thickness (m):", min_value=0.001, value=0.01)  # e.g., 10mm
+    insulation_thickness = st.number_input("Insulation thickness (m):", min_value=0.001, value=0.01)
     D_insul = D + 2 * insulation_thickness
     st.write(f"Outer diameter with insulation: {D_insul:.3f} m")
     k_insul = st.number_input("Insulation thermal conductivity (W/m·K):", min_value=0.01, value=0.04)
 
+# === Tank Data ===
+st.header("Tank Data")
+num_tanks = st.number_input("Number of Tanks:", min_value=0, value=1, step=1)
+# Initialize tank variables with defaults even if num_tanks is 0
+tank_surface_area_m2_per_unit = 0.0
+tank_wall_thickness_m = 0.001 # Default, very thin if no tanks or not set
+tank_k_material = 1.0 # Default, high conductivity, minimal impact if no tanks
+
+if num_tanks > 0:
+    tank_type = st.selectbox("Tank Geometry/Type:", ["Cylindrical (vertical)", "Manual Exposed Surface Area"])
+    
+    if tank_type == "Cylindrical (vertical)":
+        tank_diameter_m = st.number_input("Tank Diameter (m):", min_value=0.1, value=2.0)
+        tank_height_m = st.number_input("Tank Height (m):", min_value=0.1, value=2.0)
+        # Assuming tank is full, heat loss from side wall and top surface
+        tank_surface_area_m2_per_unit = (np.pi * tank_diameter_m * tank_height_m) + (np.pi * (tank_diameter_m / 2)**2) # Side + Top
+        st.write(f"Calculated exposed surface area per tank: {tank_surface_area_m2_per_unit:.2f} m² (Side + Top)")
+    else: # Manual Surface Area
+        tank_surface_area_m2_per_unit = st.number_input("Exposed Surface Area per Tank (m²):", min_value=0.1, value=10.0)
+
+    tank_wall_thickness_m = st.number_input("Tank Wall Thickness (m):", min_value=0.001, value=0.005)
+    tank_k_material = st.number_input("Tank Wall Thermal Conductivity (W/m·K):", min_value=0.1, value=50.0)
+    
+    # NÃO UTILIZAMOS ISOLAMENTO NOS TANQUES, REMOVIDO CHECKBOX E INPUTS
+    st.markdown("*(Nota: Isolamento para tanques não é considerado neste modelo.)*")
+
+
 t_max_h = st.number_input("Total simulation time (h):", min_value=0.1, value=10.0)
+
 
 # === Run Simulation ===
 if st.button("Run Simulation"):
     # --- Power Validation ---
     error_margin = 0.02 # 2% error margin
+    
+    # Validation for Heating Phase
+    if pump_eff > 0:
+        expected_nominal_heating = (pump_hydraulic_power / (pump_eff / 100))
+        if pump_power_kw > 0 and not (abs(expected_nominal_heating - pump_power_kw) / pump_power_kw <= error_margin):
+            st.warning(f"**Warning (Heating Phase):** 'Nominal Power' ({pump_power_kw:.2f} kW) does not match (Hydraulic Power / Efficiency) = ({expected_nominal_heating:.2f} kW) within a 2% margin. "
+                       "Please ensure 'Nominal Power' represents the **Pump Axle Power**. "
+                       "The calculation will proceed using the provided Nominal Power.")
+    else:
+        st.warning("**Warning (Heating Phase):** Pump efficiency cannot be zero. Calculation may be inaccurate.")
+    
+    # Validation for Calibration Phase
+    if calib_pump_eff > 0:
+        expected_nominal_calib = (calib_pump_hydraulic_power / (calib_pump_eff / 100))
+        if calib_pump_power_kw > 0 and not (abs(expected_nominal_calib - calib_pump_power_kw) / calib_pump_power_kw <= error_margin):
+            st.warning(f"**Warning (Calibration Phase):** 'Nominal Power' ({calib_pump_power_kw:.2f} kW) does not match (Hydraulic Power / Efficiency) = ({expected_nominal_calib:.2f} kW) within a 2% margin. "
+                       "Please ensure 'Nominal Power' represents the **Pump Axle Power**. "
+                       "The calculation will proceed using the provided Nominal Power.")
+    else:
+        st.warning("**Warning (Calibration Phase):** Calibration pump efficiency cannot be zero. Calculation may be inaccurate.")
     
     # --- Start Simulation Calculations ---
     dWp_dt = pump_power_kw * 1000 * num_pumps  # W (Total heat generated by pump(s) from shaft power)
@@ -183,37 +234,58 @@ if st.button("Run Simulation"):
             R_equiv_ext_pipe = 1 / (total_h_external_pipe * np.pi * outer_diameter_for_loss * L)
 
         # 3. Calculate h_rad and R_equiv_ext (for PUMP) dynamically
-        # Assuming pump surface is at current fluid temperature and uses same h_out_convection/emiss
         h_rad_pump = calculate_h_rad(emiss, current_T_K, T_ambient_K) # h_rad for pump
         total_h_external_pump = (h_out_convection + h_rad_pump)
         
-        # Calculate resistance for total pump surface area
         if total_h_external_pump == 0 or pump_surface_area_m2 == 0:
             R_equiv_ext_pump = float('inf')
         else:
-            # Note: For a pump, we directly use the input surface area
-            R_equiv_ext_pump = 1 / (total_h_external_pump * pump_surface_area_m2 * num_pumps) # Total pump surface area for all pumps
+            R_equiv_ext_pump = 1 / (total_h_external_pump * pump_surface_area_m2 * num_pumps)
 
-        # 4. Calculate Total Thermal Resistance for the current step (PIPE + PUMP in parallel for heat loss)
-        # The resistances from fluid to ambient are in parallel for different components.
-        # So, we sum up the conductances (1/R).
+        # 4. Calculate Tank Heat Loss Resistances (no insulation for tanks)
+        conductance_tank = 0 # Default to 0 if no tanks
+        if num_tanks > 0:
+            # Tank Wall Conduction Resistance (simplified flat plate approx)
+            if tank_k_material == 0 or tank_surface_area_m2_per_unit == 0:
+                R_cond_tank_wall_approx = float('inf')
+            else:
+                R_cond_tank_wall_approx = tank_wall_thickness_m / (tank_k_material * tank_surface_area_m2_per_unit)
+            
+            # No insulation for tanks, so R_cond_tank_insulation_approx is 0
+            R_cond_tank_insulation_approx = 0 
+            
+            R_total_tank_conductive = R_cond_tank_wall_approx + R_cond_tank_insulation_approx
+
+            # External Convection and Radiation for Tank
+            h_rad_tank = calculate_h_rad(emiss, current_T_K, T_ambient_K)
+            total_h_external_tank_combined = (h_out_convection + h_rad_tank)
+            
+            if total_h_external_tank_combined == 0 or tank_surface_area_m2_per_unit == 0:
+                R_equiv_ext_tank = float('inf')
+            else:
+                R_equiv_ext_tank = 1 / (total_h_external_tank_combined * tank_surface_area_m2_per_unit * num_tanks)
+            
+            # Total resistance from fluid inside tank to ambient (assuming perfect internal mixing)
+            R_total_tank_current_step = R_total_tank_conductive + R_equiv_ext_tank
+            conductance_tank = 1 / R_total_tank_current_step if R_total_tank_current_step != float('inf') else 0
+
+        # 5. Calculate Total Thermal Conductance for the current step (PIPE + PUMP + TANK in parallel)
         conductance_pipe = 1 / (R_conv_in + R_cond_pipe + R_cond_insul + R_equiv_ext_pipe)
         conductance_pump = 1 / R_equiv_ext_pump if R_equiv_ext_pump != float('inf') else 0
-
-        total_conductance_loss = conductance_pipe + conductance_pump
+        
+        total_conductance_loss = conductance_pipe + conductance_pump + conductance_tank
         
         if total_conductance_loss == 0:
             R_total_system_for_loss = float('inf')
         else:
             R_total_system_for_loss = 1 / total_conductance_loss
 
-        # Avoid division by zero if R_total_system_for_loss is zero (e.g., infinite heat transfer)
         if R_total_system_for_loss == 0:
-            loss_term = float('inf') * np.sign(current_T_K - T_ambient_K) # Infinite loss if resistance is zero
+            loss_term = float('inf') * np.sign(current_T_K - T_ambient_K)
         else:
-            loss_term = (current_T_K - T_ambient_K) / R_total_system_for_loss # Total Heat loss (W)
+            loss_term = (current_T_K - T_ambient_K) / R_total_system_for_loss
 
-        # 5. Calculate dT/dt and update fluid temperature
+        # 6. Calculate dT/dt and update fluid temperature
         if m * cp_fluid == 0:
             dT_dt = 0
         else:
@@ -312,7 +384,6 @@ if st.button("Run Simulation"):
             else:
                 R_conv_in_calib = 1 / (h_in_calib * np.pi * d * L)
 
-            # Recalculate h_rad and R_equiv_ext (for PIPE) for calibration phase
             h_rad_pipe_calib = calculate_h_rad(emiss, current_T_K_calib, T_ambient_K)
             total_h_external_pipe_calib = (h_out_convection + h_rad_pipe_calib)
             
@@ -321,7 +392,6 @@ if st.button("Run Simulation"):
             else:
                 R_equiv_ext_pipe_calib = 1 / (total_h_external_pipe_calib * np.pi * outer_diameter_for_loss * L)
 
-            # Recalculate h_rad and R_equiv_ext (for PUMP) for calibration phase
             h_rad_pump_calib = calculate_h_rad(emiss, current_T_K_calib, T_ambient_K)
             total_h_external_pump_calib = (h_out_convection + h_rad_pump_calib)
             
@@ -330,11 +400,33 @@ if st.button("Run Simulation"):
             else:
                 R_equiv_ext_pump_calib = 1 / (total_h_external_pump_calib * calib_pump_surface_area_m2 * calib_num_pumps)
 
-            # Calculate Total Thermal Conductance for the current step (PIPE + PUMP in parallel)
+            # Calculate Tank Heat Loss Resistances (no insulation for tanks) for calibration phase
+            conductance_tank_calib = 0 # Default if no tanks
+            if num_tanks > 0: # Ensure there are tanks to calculate loss from
+                if tank_k_material == 0 or tank_surface_area_m2_per_unit == 0:
+                    R_cond_tank_wall_approx_calib = float('inf')
+                else:
+                    R_cond_tank_wall_approx_calib = tank_wall_thickness_m / (tank_k_material * tank_surface_area_m2_per_unit)
+                
+                R_cond_tank_insulation_approx_calib = 0 # No insulation for tanks
+                
+                R_total_tank_conductive_calib = R_cond_tank_wall_approx_calib + R_cond_tank_insulation_approx_calib
+
+                h_rad_tank_calib = calculate_h_rad(emiss, current_T_K_calib, T_ambient_K)
+                total_h_external_tank_combined_calib = (h_out_convection + h_rad_tank_calib)
+                
+                if total_h_external_tank_combined_calib == 0 or tank_surface_area_m2_per_unit == 0:
+                    R_equiv_ext_tank_calib = float('inf')
+                else:
+                    R_equiv_ext_tank_calib = 1 / (total_h_external_tank_combined_calib * tank_surface_area_m2_per_unit * num_tanks)
+                
+                R_total_tank_calib_current_step = R_total_tank_conductive_calib + R_equiv_ext_tank_calib
+                conductance_tank_calib = 1 / R_total_tank_calib_current_step if R_total_tank_calib_current_step != float('inf') else 0
+
             conductance_pipe_calib = 1 / (R_conv_in_calib + R_cond_pipe + R_cond_insul + R_equiv_ext_pipe_calib)
             conductance_pump_calib = 1 / R_equiv_ext_pump_calib if R_equiv_ext_pump_calib != float('inf') else 0
 
-            total_conductance_loss_calib = conductance_pipe_calib + conductance_pump_calib
+            total_conductance_loss_calib = conductance_pipe_calib + conductance_pump_calib + conductance_tank_calib
             
             if total_conductance_loss_calib == 0:
                 R_total_system_for_loss_calib = float('inf')
@@ -362,8 +454,7 @@ if st.button("Run Simulation"):
             T_90_actual = None
             st.warning(f"Calibration phase did not reach 90% viscosity target temperature ({T_90:.1f}°C) within simulation time.")
 
-        # Calculate the equilibrium temperature (T_eq) based on the calibration phase parameters
-        if R_total_system_for_loss_calib != 0: # Use the R_total_system_for_loss_calib from the last iteration
+        if R_total_system_for_loss_calib != 0:
             T_eq = T_ambient + dWp_dt_calib * R_total_system_for_loss_calib
         else:
             T_eq = T_ambient
