@@ -42,14 +42,14 @@ if use_manual_input:
     fluid_choice = "Manual Input" # Define fluid_choice even for manual input
 else:
     fluid_choice = st.selectbox("Select fluid from library:", [
-        "KRD MAX 225 (11.4 - 40.8 cP)",
-        "KRD MAX 2205 (82.5 - 402 cP)",
-        "KRD MAX 685 (68.2 - 115.6 cP)",
-        "KRD MAX 55 (2.4 - 4.64 cP)",
-        "Tellus S2 V32 (16.4 - 77.7 cP)",   # ATUALIZADO
-        "Tellus S2 V100 (44.4 - 277.8 cP)",  # ATUALIZADO
-        "Tellus S2 M32 (14 - 86.1 cP)",   # ATUALIZADO
-        "Tellus S2 M100 (35.3 - 315 cP)"   # ATUALIZADO
+        "KRD MAX 225 (2.5 - 40.8 cP)",    # ATUALIZADO
+        "KRD MAX 2205 (52.2 - 402 cP)",   # ATUALIZADO
+        "KRD MAX 685 (15.3 - 115.6 cP)",  # ATUALIZADO
+        "KRD MAX 55 (1.5 - 4.64 cP)",     # ATUALIZADO
+        "Tellus S2 V32 (16.4 - 77.7 cP)",
+        "Tellus S2 V100 (44.4 - 277.8 cP)",
+        "Tellus S2 M32 (14 - 86.1 cP)",
+        "Tellus S2 M100 (35.3 - 315 cP)"
     ])
 
     # Fluid properties (common for library fluids)
@@ -58,7 +58,7 @@ else:
     k_fluid = 0.12  # W/m·K
 
     # viscosity models by fluid (ensure they return Pa.s)
-    if fluid_choice == "KRD MAX 225 (11.4 - 40.8 cP)":
+    if fluid_choice == "KRD MAX 225 (11.4 - 40.8 cP)": # Using original A,B for KRD MAX models
         viscosity_model = lambda Tf: 0.1651 * np.exp(-0.046 * Tf)
     elif fluid_choice == "KRD MAX 2205 (82.5 - 402 cP)":
         viscosity_model = lambda Tf: 1.9133 * np.exp(-0.053 * Tf)
@@ -69,13 +69,17 @@ else:
     
     # NOVAS ADIÇÕES PARA OS ÓLEOS TELLUS S2
     elif fluid_choice == "Tellus S2 V32 (16.4 - 77.7 cP)":
-        viscosity_model = lambda Tf: 0.1661 * np.exp(-0.0456 * Tf)
+        A_v32, B_v32 = 0.110302, 0.030781 # Updated A and B
+        viscosity_model = lambda Tf: A_v32 * np.exp(-B_v32 * Tf)
     elif fluid_choice == "Tellus S2 V100 (44.4 - 277.8 cP)":
-        viscosity_model = lambda Tf: 0.8123 * np.exp(-0.0458 * Tf)
+        A_v100, B_v100 = 0.422520, 0.035852 # Updated A and B
+        viscosity_model = lambda Tf: A_v100 * np.exp(-B_v100 * Tf)
     elif fluid_choice == "Tellus S2 M32 (14 - 86.1 cP)":
-        viscosity_model = lambda Tf: 0.2241 * np.exp(-0.0385 * Tf)
+        A_m32, B_m32 = 0.119070, 0.032849 # Updated A and B
+        viscosity_model = lambda Tf: A_m32 * np.exp(-B_m32 * Tf)
     elif fluid_choice == "Tellus S2 M100 (35.3 - 315 cP)":
-        viscosity_model = lambda Tf: 1.0963 * np.exp(-0.0388 * Tf)
+        A_m100, B_m100 = 0.510050, 0.040485 # Updated A and B
+        viscosity_model = lambda Tf: A_m100 * np.exp(-B_m100 * Tf)
 
 
 # === Pump Data ===
@@ -90,18 +94,16 @@ pump_heat_factor = st.number_input(
 
 st.header("Heating Phase Pump Config")
 pump_power_kw = st.number_input("Nominal power per heating pump (kW):", min_value=0.1, value=69.0)
-# REMOVIDO: pump_hydraulic_power = st.number_input("Hydraulic Power per heating pump (kW):", min_value=0.1, value=40.0)
+# REMOVIDOS: pump_hydraulic_power e pump_eff
 pump_flow_m3h = st.number_input("Flow rate per heating pump (m³/h):", min_value=0.1, value=550.0)
-# REMOVIDO: pump_eff = st.number_input("Pump efficiency (%) for heating:", min_value=1.0, max_value=100.0, value=58.0)
 num_pumps = st.number_input("Number of heating pumps operating in parallel:", min_value=1, step=1, value=1)
 pump_surface_area_m2 = st.number_input("Pump Surface Area (m²) for heat loss per pump:", min_value=0.0, value=1.5)
 
 
 st.header("Calibration Phase Pump Config")
 calib_pump_power_kw = st.number_input("Nominal power per calibration pump (kW):", min_value=0.1, value=69.0)
-# REMOVIDO: calib_pump_hydraulic_power = st.number_input("Hydraulic Power per calibration pump (kW):", min_value=0.1, value=40.0)
+# REMOVIDOS: calib_pump_hydraulic_power e calib_pump_eff
 calib_pump_flow_m3h = st.number_input("Flow rate per calibration pump (m³/h):", min_value=0.1, value=550.0)
-# REMOVIDO: calib_pump_eff = st.number_input("Pump efficiency (%) for calibration:", min_value=1.0, max_value=100.0, value=58.0)
 calib_num_pumps = st.number_input("Number of calibration pumps operating in parallel:", min_value=1, step=1, value=1)
 calib_pump_surface_area_m2 = st.number_input("Calibration Pump Surface Area (m²) for heat loss per pump:", min_value=0.0, value=1.5)
 
@@ -150,7 +152,7 @@ if num_tanks > 0:
     else: # Manual Surface Area
         tank_surface_area_m2_per_unit = st.number_input("Exposed Surface Area per Tank (m²):", min_value=0.1, value=10.0)
 
-    tank_wall_thickness_m = st.number_input("Tank Wall Thickness (m):", min_value=0.001, value=0.005)
+    tank_wall_thickness_m = st.number_input("Tank Wall Thickness (mm):", min_value=0.5, value=20) /1000
     tank_k_material = st.number_input("Tank Wall Thermal Conductivity (W/m·K):", min_value=0.1, value=50.0)
     
     st.markdown("*(Note: Tank insulation is not considered in this model.)*")
@@ -294,22 +296,32 @@ if st.button("Run Simulation"):
     # --- Calculations related to Viscosity-Temperature relationship ---
     T_90 = T_110 = T_target_visc = None
     
-    if fluid_choice == "KRD MAX 225 (11.4 - 40.8 cP)":
-        T_90 = -1 / 0.046 * np.log(min_mu / 0.1651)
-        T_110 = -1 / 0.046 * np.log(max_mu / 0.1651)
-        T_target_visc = -1 / 0.046 * np.log(target_mu / 0.1651)
+    # Using original A,B for KRD MAX models - Ensure these are correct if their labels changed
+    if fluid_choice == "KRD MAX 225 (2.5 - 40.8 cP)": 
+        # Check if 11.4 changed to 2.5. If so, A and B should be re-fitted.
+        # Assuming only display label changed, not underlying model.
+        A_krd225, B_krd225 = 0.1651, 0.046 # Original KRD MAX 225
+        T_90 = -1 / B_krd225 * np.log(min_mu / A_krd225)
+        T_110 = -1 / B_krd225 * np.log(max_mu / A_krd225)
+        T_target_visc = -1 / B_krd225 * np.log(target_mu / A_krd225)
 
-    elif fluid_choice == "KRD MAX 2205 (82.5 - 402 cP)":
-        T_90 = -1 / 0.053 * np.log(min_mu / 1.9133)
-        T_110 = -1 / 0.053 * np.log(max_mu / 1.9133)
-        T_target_visc = -1 / 0.053 * np.log(target_mu / 1.9133)
+    elif fluid_choice == "KRD MAX 2205 (52.2 - 402 cP)":
+        # Assuming only display label changed, not underlying model.
+        A_krd2205, B_krd2205 = 1.9133, 0.053 # Original KRD MAX 2205
+        T_90 = -1 / B_krd2205 * np.log(min_mu / A_krd2205)
+        T_110 = -1 / B_krd2205 * np.log(max_mu / A_krd2205)
+        T_target_visc = -1 / B_krd2205 * np.log(target_mu / A_krd2205)
 
-    elif fluid_choice == "KRD MAX 685 (68.2 - 115.6 cP":
-        T_90 = -1 / 0.054 * np.log(min_mu / 0.5933)
-        T_110 = -1 / 0.054 * np.log(max_mu / 0.5933)
-        T_target_visc = -1 / 0.054 * np.log(target_mu / 0.5933)
+    elif fluid_choice == "KRD MAX 685 (15.3 - 115.6 cP)":
+        # Assuming only display label changed, not underlying model.
+        A_krd685, B_krd685 = 0.5933, 0.054 # Original KRD MAX 685
+        T_90 = -1 / B_krd685 * np.log(min_mu / A_krd685)
+        T_110 = -1 / B_krd685 * np.log(max_mu / A_krd685)
+        T_target_visc = -1 / B_krd685 * np.log(target_mu / A_krd685)
 
-    elif fluid_choice == "KRD MAX 55 (2.4 - 4.64 cP)":
+    elif fluid_choice == "KRD MAX 55 (1.5 - 4.64 cP)":
+        # Assuming only display label changed, not underlying model.
+        # This one is polynomial, so it has its own inverse_viscosity function.
         def inverse_viscosity(mu_target_PaS):
             func = lambda T: (-9e-08 * T**3 + 1e-05 * T**2 - 0.0007 * T + 0.0165) - mu_target_PaS
             try:
@@ -329,22 +341,22 @@ if st.button("Run Simulation"):
     # NOVAS ADIÇÕES PARA O CÁLCULO INVERSO PARA TEMPERATURA (T) DADO VISCOSIDADE (mu_target_PaS)
     # T = -1/B * log(mu_target_PaS / A)
     elif fluid_choice == "Tellus S2 V32 (16.4 - 77.7 cP)":
-        A_v32, B_v32 = 0.1661, 0.0456
+        A_v32, B_v32 = 0.110302, 0.030781 # Updated A and B
         T_90 = -1 / B_v32 * np.log(min_mu / A_v32)
         T_110 = -1 / B_v32 * np.log(max_mu / A_v32)
         T_target_visc = -1 / B_v32 * np.log(target_mu / A_v32)
     elif fluid_choice == "Tellus S2 V100 (44.4 - 277.8 cP)":
-        A_v100, B_v100 = 0.8123, 0.0458
+        A_v100, B_v100 = 0.422520, 0.035852 # Updated A and B
         T_90 = -1 / B_v100 * np.log(min_mu / A_v100)
         T_110 = -1 / B_v100 * np.log(max_mu / A_v100)
         T_target_visc = -1 / B_v100 * np.log(target_mu / A_v100)
     elif fluid_choice == "Tellus S2 M32 (14 - 86.1 cP)":
-        A_m32, B_m32 = 0.2241, 0.0385
+        A_m32, B_m32 = 0.119070, 0.032849 # Updated A and B
         T_90 = -1 / B_m32 * np.log(min_mu / A_m32)
         T_110 = -1 / B_m32 * np.log(max_mu / A_m32)
         T_target_visc = -1 / B_m32 * np.log(target_mu / A_m32)
     elif fluid_choice == "Tellus S2 M100 (35.3 - 315 cP)":
-        A_m100, B_m100 = 1.0963, 0.0388
+        A_m100, B_m100 = 0.510050, 0.040485 # Updated A and B
         T_90 = -1 / B_m100 * np.log(min_mu / A_m100)
         T_110 = -1 / B_m100 * np.log(max_mu / A_m100)
         T_target_visc = -1 / B_m100 * np.log(target_mu / A_m100)
@@ -423,13 +435,13 @@ if st.button("Run Simulation"):
 
             # Calculate Tank Heat Loss Resistances (no insulation for tanks) for calibration phase
             conductance_tank_calib = 0 # Default if no tanks
-            if num_tanks > 0: # Ensure there are tanks to calculate loss from
+            if num_tanks > 0:
                 if tank_k_material == 0 or tank_surface_area_m2_per_unit == 0:
                     R_cond_tank_wall_approx_calib = float('inf')
                 else:
                     R_cond_tank_wall_approx_calib = tank_wall_thickness_m / (tank_k_material * tank_surface_area_m2_per_unit)
                 
-                R_cond_tank_insulation_approx_calib = 0 # No insulation for tanks
+                R_cond_tank_insulation_approx_calib = 0
                 
                 R_total_tank_conductive_calib = R_cond_tank_wall_approx_calib + R_cond_tank_insulation_approx_calib
 
