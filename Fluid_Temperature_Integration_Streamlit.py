@@ -152,7 +152,7 @@ if num_tanks > 0:
     else: # Manual Surface Area
         tank_surface_area_m2_per_unit = st.number_input("Exposed Surface Area per Tank (m²):", min_value=0.1, value=10.0)
 
-    tank_wall_thickness_m = st.number_input("Tank Wall Thickness (mm):", min_value=0.5, value=20.0) /1000
+    tank_wall_thickness_m = st.number_input("Tank Wall Thickness (mm):", min_value=0.5, value=5.0) /1000
     tank_k_material = st.number_input("Tank Wall Thermal Conductivity (W/m·K):", min_value=0.1, value=50.0)
     
     st.markdown("*(Note: Tank insulation is not considered in this model.)*")
