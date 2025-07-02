@@ -23,7 +23,7 @@ st.write("Enter your pump, fluid, piping, and insulation parameters below:")
 
 # === System Data ===
 st.header("System Data")
-total_volume_m3 = st.number_input("Total fluid volume in system (m³):", min_value=0.1, value=10.0)
+total_volume_m3 = st.number_input("Total fluid volume in system (m³):", min_value=0.1, value=20.0)
 T_ambient = st.number_input("Ambient temperature (°C):", value=25.0)
 target_mu = st.number_input("Target Viscosity (cP):", value=25.0)
 max_mu = target_mu * 1.1 / 1000 # Convert cP to Pa.s
@@ -138,8 +138,8 @@ if num_tanks > 0:
     tank_type = st.selectbox("Tank Geometry/Type:", ["Cylindrical (vertical)", "Manual Exposed Surface Area"])
     
     if tank_type == "Cylindrical (vertical)":
-        tank_diameter_m = st.number_input("Tank Diameter (m):", min_value=0.1, value=2.0)
-        tank_height_m = st.number_input("Tank Height (m):", min_value=0.1, value=2.0)
+        tank_diameter_m = st.number_input("Tank Diameter (m):", min_value=0.1, value=3.0)
+        tank_height_m = st.number_input("Tank Height (m):", min_value=0.1, value=4.0)
         
         # Calculate and display exposed surface area (side + top)
         tank_surface_area_m2_per_unit = (np.pi * tank_diameter_m * tank_height_m) + (np.pi * (tank_diameter_m / 2)**2)
